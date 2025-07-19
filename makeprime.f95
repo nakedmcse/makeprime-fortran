@@ -61,6 +61,65 @@ program makeprime
         end function generate_candidate
 
         ! Miller Rabin
+        function miller_rabin(n, k) result (res)
+            integer :: k, s, i, j
+            type(IM) :: n, d, a, x
+            double precision :: rand
+            logical :: res
+
+            if (n < 2 .or. (n /= 2 .and. mod(n, to_im(2)) == 0)) then
+                res = .false.
+                return
+            end if
+
+            if (n < 6) then
+                res = .true.
+                return
+            end if
+
+            s = 0
+            d = n - 1
+            do while (mod(d, to_im(2)) == 0)
+                d = d/2
+                s = s + 1
+            end do
+
+            do i = 1, k
+                call random_number(rand)
+                a = 2 + (rand * (n-2))
+                x = power_mod(a, d, n)
+                if (x == 1 .or. x == n-1) continue
+                do j = 1, s-1
+                    x = power_mod(x, to_im(2), n)
+                    if (x == n-1) then
+                        exit
+                    else
+                        res = .false.
+                        return
+                    end if
+                end do
+            end do
+            res = .true.
+        end function miller_rabin
+
         ! Find Prime
+        function find_prime(digits, want_twin, want_random) result (res)
+            integer :: digits
+            logical :: want_twin, want_random, found
+            type(IM) :: res, candidate
+
+            found = .false.
+            candidate = generate_candidate(digits, want_random)
+            do while (found .eqv. .false.)
+                if (want_twin .eqv. .false. .and. divisible_by_small_primes(candidate) .eqv. .false. .and. miller_rabin(candidate, 10)) then
+                    found = .true.
+                else if (want_twin .eqv. .true. .and. divisible_by_small_primes(candidate) .eqv. .false. .and. miller_rabin(candidate, 10) .and. miller_rabin(candidate+2, 10)) then
+                    found = .true.
+                else
+                    candidate = candidate + 2
+                end if
+            end do
+            res = candidate
+        end function find_prime
 
 end program makeprime
