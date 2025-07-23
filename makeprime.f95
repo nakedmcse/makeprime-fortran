@@ -14,14 +14,48 @@ program makeprime
                     353, 359, 367, 373, 379, 383, 389, 397, 401, 409, &
                     419, 421, 431, 433, 439, 443, 449, 457, 461, 463, &
                     467, 479, 487, 491, 499, 503, 509, 521, 523, 541]
+
+    integer :: num_args, idx, ios
+    integer :: num_digits = 0
+    character(len=12), dimension(:), allocatable :: args
+    character(len=10000) :: output
+    logical :: want_twin = .false.
+    logical :: want_random = .false.
     type(IM) :: candidate
 
-    candidate = 10
-    print *, '10:', divisible_by_small_primes(candidate)
-    candidate = 10007
-    print *, '10007:', divisible_by_small_primes(candidate)
-    candidate = generate_candidate(100,.true.)
-    print *, adjustl(im_format('i200',candidate))
+    num_args = command_argument_count()
+    allocate(args(num_args))
+    do idx = 1, num_args
+        call get_command_argument(idx, args(idx))
+        select case (args(idx))
+            case ('--twin')
+                want_twin = .true.
+            case ('--random')
+                want_random = .true.
+            case ('--help')
+                print *,"Command Format:"
+                print *,"makeprime <digits> [--twin] [--random] [--help]"
+            case default
+                read(args(idx), *, iostat=ios) num_digits
+                if (ios /= 0) then
+                    print *,"Unknown Argument: ",trim(args(idx))
+                    num_digits = 0
+                end if
+        end select
+    end do
+
+    if(num_digits < 3) then
+        print *,"Must have at least 3 digits"
+        stop
+    end if
+
+    candidate = find_prime(num_digits, want_twin, want_random)
+    call im_form('i10000', candidate, output)
+    print *, trim(adjustl(output))
+    if (want_twin) then
+        call im_form('i10000', candidate+2, output)
+        print *, trim(adjustl(output))
+    end if
 
     contains
         ! Divisible by small primes
@@ -39,17 +73,17 @@ program makeprime
         end function divisible_by_small_primes
 
         ! Generate Candidate
-        function generate_candidate(digits, want_random) result (res)
-            integer :: digits
+        function generate_candidate(num_digits, want_random) result (res)
+            integer :: num_digits
             double precision :: rand
             logical :: want_random
             type(IM) :: res
 
-            res = (to_im(10)**to_im(digits-1)) + 1
+            res = (to_im(10)**to_im(num_digits-1)) + 1
 
             if (want_random) then
                 call random_number(rand)
-                res = (to_im(10)**to_im(digits)) * rand
+                res = (to_im(10)**to_im(num_digits)) * rand
                 if (mod(res,to_im(2)) == 0) then
                     res = res + 1
                 end if
@@ -103,13 +137,13 @@ program makeprime
         end function miller_rabin
 
         ! Find Prime
-        function find_prime(digits, want_twin, want_random) result (res)
-            integer :: digits
+        function find_prime(num_digits, want_twin, want_random) result (res)
+            integer :: num_digits
             logical :: want_twin, want_random, found
             type(IM) :: res, candidate
 
             found = .false.
-            candidate = generate_candidate(digits, want_random)
+            candidate = generate_candidate(num_digits, want_random)
             do while (found .eqv. .false.)
                 if (want_twin .eqv. .false. .and. divisible_by_small_primes(candidate) .eqv. .false. .and. miller_rabin(candidate, 10)) then
                     found = .true.
