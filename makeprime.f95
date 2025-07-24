@@ -72,18 +72,32 @@ program makeprime
             end do
         end function divisible_by_small_primes
 
+        ! Generate Random
+        function generate_random(num_digits) result (res)
+            integer :: num_digits, i, next_digit
+            real :: r
+            character(len=num_digits) :: random_choice
+            type(IM) :: res
+
+            random_choice = ""
+            do i = 1, num_digits
+                call random_number(r)
+                next_digit = int(r * 10)
+                random_choice(i:i) = achar(iachar('0') + next_digit)
+            end do
+            res = to_im(random_choice)
+        end function generate_random
+
         ! Generate Candidate
         function generate_candidate(num_digits, want_random) result (res)
             integer :: num_digits
-            double precision :: rand
             logical :: want_random
             type(IM) :: res
 
             res = (to_im(10)**to_im(num_digits-1)) + 1
 
             if (want_random) then
-                call random_number(rand)
-                res = (to_im(10)**to_im(num_digits)) * rand
+                res = generate_random(num_digits)
                 if (mod(res,to_im(2)) == 0) then
                     res = res + 1
                 end if
